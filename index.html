@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Nourish — Your Food Assistant</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --mango:#FF8A3D; --berry:#FF5C8A; --avocado:#3DBE7A; --sky:#3DA9FC; --purple:#8B5CF6; --sun:#FFC93D;
+    --ink:#2A2438; --paper:#FFF8F0; --card:#FFFFFF; --line:#F0E4D8; --muted:#8B8398;
+    --display:'Fraunces','Georgia',serif;
+    --body:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Arial,sans-serif;
+    --grad-warm: linear-gradient(135deg,#FF8A3D 0%, #FF5C8A 55%, #8B5CF6 100%);
+    --grad-cool: linear-gradient(135deg,#3DA9FC 0%, #3DBE7A 100%);
+    --grad-bg: linear-gradient(160deg,#FFF8F0 0%, #FFF0F5 50%, #F3EEFC 100%);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--grad-bg); color:var(--ink); font-family:var(--body);
+    -webkit-font-smoothing:antialiased; padding-bottom:78px; min-height:100vh;
+  }
+  h1,h2,h3{font-family:var(--display); font-weight:700; margin:0 0 4px;}
+  .eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--purple); font-weight:800;}
+  .topbar{
+    padding:26px 18px 20px; background:var(--grad-warm); position:sticky; top:0; z-index:5;
+    color:#fff; border-radius:0 0 22px 22px; box-shadow:0 6px 18px rgba(139,92,246,.25);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .topbar .eyebrow{color:rgba(255,255,255,.85);}
+  .topbar h1{font-size:26px; color:#fff;}
+  .avatar{
+    width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.25);
+    display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:15px;
+    border:2px solid rgba(255,255,255,.6); cursor:pointer;
+  }
+  .wrap{padding:16px; max-width:520px; margin:0 auto;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:18px; margin-bottom:16px; box-shadow:0 4px 14px rgba(42,36,56,.06);
+  }
+  .row{display:flex; gap:10px;}
+  .col{flex:1;}
+  label{display:block; font-size:12px; color:var(--muted); margin:10px 0 5px; font-weight:700;}
+  input[type=text], input[type=number], input[type=password], select, textarea{
+    width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:10px;
+    font-size:15px; background:#FFFCF8; color:var(--ink); font-family:var(--body);
+  }
+  input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--purple); }
+  textarea{resize:vertical; min-height:60px;}
+  button{
+    font-family:var(--body); cursor:pointer; border:none; border-radius:12px;
+    padding:12px 16px; font-size:14px; font-weight:700; transition:transform .1s;
+  }
+  button:active{transform:scale(.97);}
+  .btn-primary{background:var(--grad-warm); color:#fff; width:100%; box-shadow:0 4px 12px rgba(255,92,138,.35);}
+  .btn-secondary{background:#EEF0FF; color:var(--purple);}
+  .btn-berry{background:var(--grad-cool); color:#fff;}
+  .btn-ghost{background:transparent; color:var(--muted); border:1.5px solid var(--line);}
+  .pill{display:inline-block; padding:4px 11px; border-radius:20px; font-size:12px; font-weight:700;}
+  .stat-big{font-family:var(--display); font-size:40px; font-weight:700; line-height:1;
+    background:var(--grad-warm); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .muted{color:var(--muted); font-size:13px;}
+  .progress{height:12px; border-radius:8px; background:#F3EEFC; overflow:hidden; margin:10px 0;}
+  .progress > div{height:100%; background:var(--grad-warm); transition:width .4s;}
+  .meal-item{display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--line);}
+  .meal-item:last-child{border-bottom:none;}
+  .meal-name{font-weight:700; font-size:14px;}
+  .meal-meta{font-size:12px; color:var(--muted);}
+  .meal-cal{font-weight:800; color:var(--berry);}
+  .bottom-nav{
+    position:fixed; bottom:0; left:0; right:0; background:var(--card);
+    border-top:1px solid var(--line); display:flex; z-index:10; padding:4px 0;
+    box-shadow:0 -4px 14px rgba(42,36,56,.06);
+  }
+  .nav-btn{flex:1; text-align:center; padding:8px 4px 6px; background:none; border:none;
+    font-size:11px; color:var(--muted); font-weight:700; display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .nav-btn.active{color:var(--berry);}
+  .nav-icon{font-size:20px;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .chat-log{display:flex; flex-direction:column; gap:10px; padding:4px 0 10px; max-height:52vh; overflow-y:auto;}
+  .msg{max-width:82%; padding:11px 14px; border-radius:16px; font-size:14px; line-height:1.4;}
+  .msg.user{align-self:flex-end; background:var(--grad-warm); color:#fff; border-bottom-right-radius:4px;}
+  .msg.bot{align-self:flex-start; background:#F3EEFC; color:var(--ink); border-bottom-left-radius:4px;}
+  .chat-input-row{display:flex; gap:8px;}
+  .chat-input-row input{flex:1;}
+  .imgpreview{width:100%; max-height:220px; object-fit:cover; border-radius:14px; margin-bottom:10px; display:none;}
+  .upload-box{border:2px dashed var(--purple); border-radius:16px; padding:26px; text-align:center; color:var(--purple);
+    font-size:14px; font-weight:600; cursor:pointer; background:#FAF7FF;}
+  .macro-grid{display:flex; gap:8px; margin-top:12px;}
+  .macro{flex:1; text-align:center; border-radius:12px; padding:10px 4px; color:#fff;}
+  .macro.p{background:var(--sky);} .macro.c{background:var(--sun); color:var(--ink);} .macro.f{background:var(--berry);}
+  .macro .v{font-family:var(--display); font-size:18px; font-weight:700;}
+  .macro .l{font-size:10px; text-transform:uppercase; letter-spacing:.06em; opacity:.9;}
+  .spinner{width:16px; height:16px; border:2px solid #fff; border-top-color:transparent;
+    border-radius:50%; animation:spin .7s linear infinite; display:inline-block; vertical-align:middle; margin-right:6px;}
+  .spinner.dark{border:2px solid var(--purple); border-top-color:transparent;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .empty{text-align:center; padding:30px 10px; color:var(--muted); font-size:13px;}
+  .chart-box{position:relative; height:180px;}
+  .verdict-box{border-radius:12px; padding:13px; margin-top:12px; font-size:13px; font-weight:600;}
+  .verdict-good{background:#E1F7EB; color:#1D6B44;}
+  .verdict-bad{background:#FFE3EC; color:#9A2A50;}
+  .badge-row{display:flex; gap:8px; margin-top:10px;}
+  .badge{flex:1; text-align:center; padding:10px; border-radius:12px; font-size:11px; font-weight:700;}
+  .b1{background:#FFF1DC; color:var(--mango);} .b2{background:#E9F7FF; color:var(--sky);} .b3{background:#F3EEFC; color:var(--purple);}
+  /* AUTH SCREEN */
+  #authScreen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    background:var(--grad-warm);
+  }
+  .auth-card{
+    background:#fff; border-radius:24px; padding:32px 26px; width:100%; max-width:380px;
+    box-shadow:0 20px 50px rgba(42,36,56,.3); text-align:center;
+  }
+  .auth-logo{font-size:44px; margin-bottom:6px;}
+  .auth-card h1{font-size:26px;}
+  .auth-card .muted{margin-bottom:18px;}
+  .auth-tabs{display:flex; background:#F3EEFC; border-radius:12px; padding:4px; margin-bottom:18px;}
+  .auth-tab{flex:1; padding:9px; border-radius:9px; font-weight:700; font-size:13px; background:none; color:var(--purple);}
+  .auth-tab.active{background:var(--grad-warm); color:#fff;}
+  .auth-form{display:none; text-align:left;}
+  .auth-form.active{display:block;}
+  .auth-error{color:var(--berry); font-size:12px; margin-top:8px; min-height:14px; text-align:center; font-weight:700;}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">🥗</div>
+    <h1>Nourish</h1>
+    <div class="muted">Your personalized food assistant</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLoginBtn" onclick="switchAuthTab('login')">Log in</button>
+      <button class="auth-tab" id="tabSignupBtn" onclick="switchAuthTab('signup')">Sign up</button>
+    </div>
+    <div class="auth-form active" id="loginForm">
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="yourname">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••••••">
+      <button class="btn-primary" style="margin-top:16px;" onclick="doLogin()">Log in</button>
+      <div class="auth-error" id="loginError"></div>
+    </div>
+    <div class="auth-form" id="signupForm">
+      <label>Display name</label>
+      <input type="text" id="signup-name" placeholder="Your name">
+      <label>Choose a username</label>
+      <input type="text" id="signup-user" placeholder="yourname">
+      <label>Choose a password</label>
+      <input type="password" id="signup-pass" placeholder="••••••••">
+      <button class="btn-primary" style="margin-top:16px;" onclick="doSignup()">Create account</button>
+      <div class="auth-error" id="signupError"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;">
+  <div class="topbar">
+    <div>
+      <div class="eyebrow">🥗 Nourish</div>
+      <h1 id="topTitle">Profile</h1>
+    </div>
+    <div class="avatar" id="avatarBtn" onclick="doLogout()" title="Log out"></div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- PROFILE VIEW -->
+    <div class="view active" id="view-profile">
+      <div class="card">
+        <div class="eyebrow">⚙️ Anthropic API key</div>
+        <p class="muted">Needed for photo analysis & chat. Get a free key at console.anthropic.com → API Keys. Stored only in your browser.</p>
+        <input type="password" id="p-apikey" placeholder="sk-ant-...">
+        <button class="btn-secondary" style="margin-top:10px; width:100%;" onclick="saveApiKey()">Save key</button>
+        <div class="muted" id="keyMsg" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">🙋 About you</div>
+        <div class="row">
+          <div class="col"><label>Name</label><input type="text" id="p-name" placeholder="Your name"></div>
+          <div class="col"><label>Age</label><input type="number" id="p-age" placeholder="28"></div>
+        </div>
+        <div class="row">
+          <div class="col"><label>Sex</label><select id="p-sex"><option value="male">Male</option><option value="female">Female</option></select></div>
+          <div class="col"><label>Activity level</label>
+            <select id="p-activity">
+              <option value="1.2">Sedentary</option><option value="1.375">Light</option>
+              <option value="1.55" selected>Moderate</option><option value="1.725">Active</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col"><label>Weight (kg)</label><input type="number" id="p-weight" placeholder="70"></div>
+          <div class="col"><label>Height (cm)</label><input type="number" id="p-height" placeholder="170"></div>
+        </div>
+        <label>Meal preference</label>
+        <select id="p-pref">
+          <option>No preference</option><option>Vegetarian</option><option>Vegan</option>
+          <option>Non-vegetarian</option><option>Keto</option><option>High-protein</option>
+        </select>
+        <label>Allergies / foods to avoid (comma separated)</label>
+        <input type="text" id="p-allergies" placeholder="peanuts, shellfish, gluten">
+        <label>Daily calorie target</label>
+        <div class="row">
+          <div class="col"><input type="number" id="p-target" placeholder="auto-calculated"></div>
+          <div class="col" style="flex:0 0 auto;"><button class="btn-secondary" onclick="suggestTarget()">Suggest</button></div>
+        </div>
+        <div class="badge-row" id="bmiBadges" style="display:none;">
+          <div class="badge b1" id="bmiBadge">BMI —</div>
+          <div class="badge b2" id="catBadge">—</div>
+        </div>
+        <button class="btn-primary" style="margin-top:16px;" onclick="saveProfile()">💾 Save profile</button>
+        <div class="muted" id="saveMsg" style="margin-top:8px; text-align:center;"></div>
+      </div>
+    </div>
+
+    <!-- LOG MEAL VIEW -->
+    <div class="view" id="view-log">
+      <div class="card">
+        <div class="eyebrow">📸 Analyze a meal</div>
+        <div class="upload-box" id="uploadBox" onclick="document.getElementById('fileInput').click()">📷 Tap to upload or take a photo of your food</div>
+        <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none" onchange="onFileChosen(event)">
+        <img id="imgPreview" class="imgpreview">
+        <button class="btn-primary" style="margin-top:10px;" id="analyzeBtn" onclick="analyzeFood()" disabled>✨ Analyze food</button>
+        <div id="analyzeStatus" class="muted" style="margin-top:8px;"></div>
+      </div>
+      <div class="card" id="resultCard" style="display:none;">
+        <div class="eyebrow">🍽 Result</div>
+        <h3 id="foodName">—</h3>
+        <div class="stat-big" id="foodCalories">—</div>
+        <div class="muted">estimated calories</div>
+        <div class="macro-grid">
+          <div class="macro p"><div class="v" id="macroProtein">–</div><div class="l">Protein</div></div>
+          <div class="macro c"><div class="v" id="macroCarbs">–</div><div class="l">Carbs</div></div>
+          <div class="macro f"><div class="v" id="macroFat">–</div><div class="l">Fat</div></div>
+        </div>
+        <div class="verdict-box" id="verdictBox"></div>
+        <button class="btn-berry" style="margin-top:12px; width:100%;" onclick="logAnalyzedMeal()">➕ Add to today's log</button>
+      </div>
+      <div class="card">
+        <div class="eyebrow">✏️ Or log manually</div>
+        <label>Food name</label>
+        <input type="text" id="m-name" placeholder="e.g. Grilled chicken salad">
+        <div class="row">
+          <div class="col"><label>Calories</label><input type="number" id="m-cal"></div>
+          <div class="col"><label>Protein (g)</label><input type="number" id="m-protein"></div>
+        </div>
+        <button class="btn-secondary" style="margin-top:10px; width:100%;" onclick="logManualMeal()">Add manual entry</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div class="view" id="view-dashboard">
+      <div class="card">
+        <div class="eyebrow" id="dashDate">📅 Today</div>
+        <div class="stat-big" id="dashRemaining">—</div>
+        <div class="muted">calories remaining</div>
+        <div class="progress"><div id="dashBar" style="width:0%"></div></div>
+        <div class="row muted" style="font-size:12px;">
+          <div class="col">Consumed: <b id="dashConsumed">0</b></div>
+          <div class="col" style="text-align:right;">Target: <b id="dashTarget">0</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">📈 Calorie history (14 days)</div>
+        <div class="chart-box"><canvas id="calorieChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">🍩 Today's macro split</div>
+        <div class="chart-box" style="height:200px;"><canvas id="macroChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">⚖️ Weight progress</div>
+        <div class="row" style="align-items:flex-end;">
+          <div class="col"><label>Log today's weight (kg)</label><input type="number" id="weightEntry" placeholder="70"></div>
+          <div class="col" style="flex:0 0 auto;"><button class="btn-secondary" onclick="logWeight()">Add</button></div>
+        </div>
+        <div class="chart-box" style="margin-top:10px;"><canvas id="weightChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">🍴 Today's meals</div>
+        <div id="mealList"><div class="empty">No meals logged yet today.</div></div>
+      </div>
+    </div>
+
+    <!-- CHAT VIEW -->
+    <div class="view" id="view-chat">
+      <div class="card" style="padding-bottom:8px;">
+        <div class="eyebrow">💬 Ask Nourish</div>
+        <div class="chat-log" id="chatLog">
+          <div class="msg bot">Hi! I'm your nutrition assistant. Ask me anything — meal ideas, calorie questions, or how to hit your goals today. 🌱</div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Ask about nutrition..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="btn-primary" style="flex:0 0 auto;" onclick="sendChat()">➤</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active" data-view="profile" onclick="showView('profile')"><span class="nav-icon">👤</span>Profile</button>
+    <button class="nav-btn" data-view="log" onclick="showView('log')"><span class="nav-icon">📷</span>Log Meal</button>
+    <button class="nav-btn" data-view="dashboard" onclick="showView('dashboard')"><span class="nav-icon">📊</span>Dashboard</button>
+    <button class="nav-btn" data-view="chat" onclick="showView('chat')"><span class="nav-icon">💬</span>Chat</button>
+  </div>
+</div>
+
+<script>
+let currentUser = null;   // username
+let userData = null;      // {name, password, profile, meals, weightLog}
+let apiKey = '';
+let pendingAnalysis = null;
+let imageBase64 = null;
+let calorieChartObj=null, macroChartObj=null, weightChartObj=null;
+
+const titles = {profile:'Profile', log:'Log Meal', dashboard:'Dashboard', chat:'Chat'};
+const MODEL = "claude-sonnet-5";
+
+// ---------- SIMPLE HASH (demo-level only, not real security) ----------
+function simpleHash(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (Math.imul(31,h) + str.charCodeAt(i))|0; }
+  return h.toString();
+}
+
+// ---------- AUTH ----------
+function switchAuthTab(tab){
+  document.getElementById('tabLoginBtn').classList.toggle('active', tab==='login');
+  document.getElementById('tabSignupBtn').classList.toggle('active', tab==='signup');
+  document.getElementById('loginForm').classList.toggle('active', tab==='login');
+  document.getElementById('signupForm').classList.toggle('active', tab==='signup');
+}
+
+function getUsers(){
+  try{ return JSON.parse(localStorage.getItem('nourish_users')||'{}'); }catch(e){ return {}; }
+}
+function saveUsers(users){ localStorage.setItem('nourish_users', JSON.stringify(users)); }
+
+function doSignup(){
+  const name = document.getElementById('signup-name').value.trim();
+  const user = document.getElementById('signup-user').value.trim().toLowerCase();
+  const pass = document.getElementById('signup-pass').value;
+  const err = document.getElementById('signupError');
+  if(!name || !user || !pass){ err.textContent = 'Please fill all fields.'; return; }
+  const users = getUsers();
+  if(users[user]){ err.textContent = 'Username already taken.'; return; }
+  users[user] = { name, password: simpleHash(pass), profile:null, meals:[], weightLog:[], apiKey:'' };
+  saveUsers(users);
+  err.textContent = '';
+  loginAs(user, users[user]);
+}
+
+function doLogin(){
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('loginError');
+  const users = getUsers();
+  if(!users[user] || users[user].password !== simpleHash(pass)){
+    err.textContent = 'Invalid username or password.'; return;
+  }
+  err.textContent = '';
+  loginAs(user, users[user]);
+}
+
+function loginAs(user, data){
+  currentUser = user;
+  userData = data;
+  localStorage.setItem('nourish_currentUser', user);
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('avatarBtn').textContent = (data.name||user).slice(0,1).toUpperCase();
+  apiKey = data.apiKey || '';
+  if(apiKey) document.getElementById('p-apikey').value = apiKey;
+  if(data.profile) fillProfileForm(data.profile);
+  showView('profile');
+  renderDashboard();
+}
+
+function doLogout(){
+  if(!confirm('Log out?')) return;
+  localStorage.removeItem('nourish_currentUser');
+  currentUser = null; userData = null;
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('login-pass').value='';
+}
+
+function persistUser(){
+  const users = getUsers();
+  users[currentUser] = userData;
+  saveUsers(users);
+}
+
+function tryAutoLogin(){
+  const saved = localStorage.getItem('nourish_currentUser');
+  if(saved){
+    const users = getUsers();
+    if(users[saved]){ loginAs(saved, users[saved]); return; }
+  }
+}
+
+// ---------- NAV ----------
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.toggle('active', el.dataset.view===v));
+  document.getElementById('topTitle').textContent = titles[v];
+  if(v==='dashboard') renderDashboard();
+}
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+// ---------- PROFILE ----------
+function saveApiKey(){
+  apiKey = document.getElementById('p-apikey').value.trim();
+  userData.apiKey = apiKey;
+  persistUser();
+  document.getElementById('keyMsg').textContent = apiKey ? 'Key saved ✓' : '';
+  setTimeout(()=>document.getElementById('keyMsg').textContent='', 2000);
+}
+
+function fillProfileForm(profile){
+  document.getElementById('p-name').value = profile.name||'';
+  document.getElementById('p-age').value = profile.age||'';
+  document.getElementById('p-sex').value = profile.sex||'male';
+  document.getElementById('p-activity').value = profile.activity||'1.55';
+  document.getElementById('p-weight').value = profile.weight||'';
+  document.getElementById('p-height').value = profile.height||'';
+  document.getElementById('p-pref').value = profile.pref||'No preference';
+  document.getElementById('p-allergies').value = (profile.allergies||[]).join(', ');
+  document.getElementById('p-target').value = profile.target||'';
+  updateBmiLine();
+}
+
+function updateBmiLine(){
+  const w = parseFloat(document.getElementById('p-weight').value);
+  const h = parseFloat(document.getElementById('p-height').value)/100;
+  const wrap = document.getElementById('bmiBadges');
+  if(w>0 && h>0){
+    const bmi = (w/(h*h)).toFixed(1);
+    let cat = 'Normal';
+    if(bmi<18.5) cat='Underweight'; else if(bmi>=25&&bmi<30) cat='Overweight'; else if(bmi>=30) cat='Obese';
+    document.getElementById('bmiBadge').textContent = 'BMI '+bmi;
+    document.getElementById('catBadge').textContent = cat;
+    wrap.style.display = 'flex';
+  } else { wrap.style.display='none'; }
+}
+document.getElementById('p-weight').addEventListener('input', updateBmiLine);
+document.getElementById('p-height').addEventListener('input', updateBmiLine);
+
+function suggestTarget(){
+  const w = parseFloat(document.getElementById('p-weight').value);
+  const h = parseFloat(document.getElementById('p-height').value);
+  const age = parseFloat(document.getElementById('p-age').value);
+  const sex = document.getElementById('p-sex').value;
+  const act = parseFloat(document.getElementById('p-activity').value);
+  if(!w||!h||!age){ alert('Fill weight, height and age first'); return; }
+  let bmr = 10*w + 6.25*h - 5*age + (sex==='male'? 5 : -161);
+  document.getElementById('p-target').value = Math.round(bmr*act);
+}
+
+function saveProfile(){
+  const allergiesRaw = document.getElementById('p-allergies').value;
+  const weightVal = document.getElementById('p-weight').value;
+  userData.profile = {
+    name: document.getElementById('p-name').value,
+    age: document.getElementById('p-age').value,
+    sex: document.getElementById('p-sex').value,
+    activity: document.getElementById('p-activity').value,
+    weight: weightVal,
+    height: document.getElementById('p-height').value,
+    pref: document.getElementById('p-pref').value,
+    allergies: allergiesRaw.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean),
+    target: document.getElementById('p-target').value || 2000
+  };
+  // auto-log weight into progress history too
+  if(weightVal){
+    userData.weightLog = userData.weightLog || [];
+    const existing = userData.weightLog.find(w=>w.date===todayStr());
+    if(existing) existing.weight = Number(weightVal);
+    else userData.weightLog.push({date: todayStr(), weight: Number(weightVal)});
+  }
+  persistUser();
+  document.getElementById('saveMsg').textContent = 'Saved ✓';
+  setTimeout(()=>document.getElementById('saveMsg').textContent='', 2000);
+  renderDashboard();
+}
+
+// ---------- WEIGHT LOG ----------
+function logWeight(){
+  const val = Number(document.getElementById('weightEntry').value);
+  if(!val){ alert('Enter a weight value'); return; }
+  userData.weightLog = userData.weightLog || [];
+  const existing = userData.weightLog.find(w=>w.date===todayStr());
+  if(existing) existing.weight = val;
+  else userData.weightLog.push({date: todayStr(), weight: val});
+  persistUser();
+  document.getElementById('weightEntry').value='';
+  renderDashboard();
+}
+
+// ---------- IMAGE UPLOAD ----------
+function onFileChosen(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    imageBase64 = reader.result.split(',')[1];
+    const img = document.getElementById('imgPreview');
+    img.src = reader.result;
+    img.style.display = 'block';
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('resultCard').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function callClaude(messagesPayload){
+  if(!apiKey){ throw new Error('NO_KEY'); }
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({ model: MODEL, max_tokens: 1000, messages: messagesPayload })
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message||'API error');
+  const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  return text;
+}
+
+async function analyzeFood(){
+  if(!imageBase64) return;
+  const btn = document.getElementById('analyzeBtn');
+  const status = document.getElementById('analyzeStatus');
+  btn.disabled = true;
+  status.innerHTML = '<span class="spinner dark"></span>Analyzing your food...';
+  const profile = userData.profile || {};
+  const allergyList = profile.allergies ? profile.allergies.join(', ') : 'none listed';
+  const pref = profile.pref || 'no preference';
+  const prompt = `You are a nutrition analyst. Look at this food photo and identify the dish. Respond with ONLY a JSON object, no markdown fences, no preamble, in this exact shape:
+{"name": "food name", "calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "likely_allergens": ["..."], "notes": "1 short sentence about the dish"}
+The user's meal preference is "${pref}" and their allergies/avoidances are: ${allergyList}. Base calorie/macro estimates on a typical single serving.`;
+  try{
+    const text = await callClaude([{
+      role:"user",
+      content:[
+        {type:"image", source:{type:"base64", media_type:"image/jpeg", data: imageBase64}},
+        {type:"text", text: prompt}
+      ]
+    }]);
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    pendingAnalysis = parsed;
+    showAnalysisResult(parsed);
+    status.textContent = '';
+  }catch(e){
+    console.error(e);
+    status.textContent = e.message==='NO_KEY'
+      ? 'Add your Anthropic API key in the Profile tab first.'
+      : 'Could not analyze the image. Check your API key / connection, or log manually below.';
+  }
+  btn.disabled = false;
+}
+
+function showAnalysisResult(parsed){
+  document.getElementById('resultCard').style.display = 'block';
+  document.getElementById('foodName').textContent = parsed.name || 'Unknown food';
+  document.getElementById('foodCalories').textContent = (parsed.calories||'—');
+  document.getElementById('macroProtein').textContent = (parsed.protein_g||0)+'g';
+  document.getElementById('macroCarbs').textContent = (parsed.carbs_g||0)+'g';
+  document.getElementById('macroFat').textContent = (parsed.fat_g||0)+'g';
+
+  const box = document.getElementById('verdictBox');
+  let issues = [];
+  const allergens = (parsed.likely_allergens||[]).map(a=>a.toLowerCase());
+  const userAllergies = (userData.profile && userData.profile.allergies) ? userData.profile.allergies : [];
+  const matchedAllergen = allergens.find(a => userAllergies.some(ua => a.includes(ua) || ua.includes(a)));
+  if(matchedAllergen) issues.push(`may contain ${matchedAllergen}, which is on your allergy list`);
+
+  const consumedToday = todaysMeals().reduce((s,m)=>s+Number(m.calories||0),0);
+  const target = userData.profile ? Number(userData.profile.target) : 2000;
+  const remaining = target - consumedToday;
+  if(parsed.calories && parsed.calories > remaining && remaining > 0){
+    issues.push(`this uses ${parsed.calories} of your ${remaining} remaining calories today`);
+  } else if(remaining <= 0){
+    issues.push(`you've already reached your calorie target for today`);
+  }
+
+  const good = issues.length === 0;
+  box.className = 'verdict-box ' + (good ? 'verdict-good' : 'verdict-bad');
+  box.textContent = good
+    ? `✓ Great choice — fits your ${userData.profile?userData.profile.pref:'goals'} and calorie budget.`
+    : `⚠ Heads up: ${issues.join('; ')}.`;
+  pendingAnalysis.verdictGood = good;
+}
+
+function todaysMeals(){
+  const t = todayStr();
+  return (userData.meals||[]).filter(m=>m.date===t);
+}
+
+function logAnalyzedMeal(){
+  if(!pendingAnalysis) return;
+  userData.meals = userData.meals || [];
+  userData.meals.push({
+    id: Date.now().toString(), date: todayStr(), name: pendingAnalysis.name,
+    calories: pendingAnalysis.calories||0, protein: pendingAnalysis.protein_g||0,
+    carbs: pendingAnalysis.carbs_g||0, fat: pendingAnalysis.fat_g||0
+  });
+  persistUser();
+  document.getElementById('resultCard').style.display = 'none';
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = true;
+  pendingAnalysis = null; imageBase64 = null;
+  showView('dashboard');
+}
+
+function logManualMeal(){
+  const name = document.getElementById('m-name').value;
+  const cal = Number(document.getElementById('m-cal').value)||0;
+  const protein = Number(document.getElementById('m-protein').value)||0;
+  if(!name){ alert('Enter a food name'); return; }
+  userData.meals = userData.meals || [];
+  userData.meals.push({id: Date.now().toString(), date: todayStr(), name, calories: cal, protein, carbs:0, fat:0});
+  persistUser();
+  document.getElementById('m-name').value='';
+  document.getElementById('m-cal').value='';
+  document.getElementById('m-protein').value='';
+  showView('dashboard');
+}
+
+// ---------- DASHBOARD ----------
+function renderDashboard(){
+  const profile = userData.profile || {};
+  const target = Number(profile.target)||2000;
+  const today = todaysMeals();
+  const consumed = today.reduce((s,m)=>s+Number(m.calories||0),0);
+  const remaining = Math.max(target-consumed, 0);
+  document.getElementById('dashDate').textContent = '📅 ' + new Date().toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
+  document.getElementById('dashRemaining').textContent = remaining;
+  document.getElementById('dashConsumed').textContent = consumed;
+  document.getElementById('dashTarget').textContent = target;
+  document.getElementById('dashBar').style.width = Math.min(100, (consumed/target)*100)+'%';
+
+  const list = document.getElementById('mealList');
+  if(today.length===0){
+    list.innerHTML = '<div class="empty">No meals logged yet today.</div>';
+  } else {
+    list.innerHTML = today.map(m=>`
+      <div class="meal-item">
+        <div><div class="meal-name">${m.name}</div><div class="meal-meta">${m.protein||0}g protein</div></div>
+        <div class="meal-meta"><span class="meal-cal">${m.calories}</span> cal</div>
+      </div>`).join('');
+  }
+  drawCalorieChart(target);
+  drawMacroChart(today);
+  drawWeightChart();
+}
+
+function drawCalorieChart(target){
+  const days = [];
+  for(let i=13;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); }
+  const totals = days.map(d => (userData.meals||[]).filter(m=>m.date===d).reduce((s,m)=>s+Number(m.calories||0),0));
+  const labels = days.map(d => new Date(d).toLocaleDateString(undefined,{day:'numeric', month:'short'}));
+  const colors = totals.map(v => v>target ? '#FF5C8A' : '#3DBE7A');
+
+  const ctx = document.getElementById('calorieChart').getContext('2d');
+  if(calorieChartObj) calorieChartObj.destroy();
+  calorieChartObj = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Calories', data: totals, backgroundColor: colors, borderRadius:6, barThickness:14 },
+      { label:'Target', data: days.map(()=>target), type:'line', borderColor:'#8B5CF6', borderWidth:2, borderDash:[5,4], pointRadius:0 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{ ticks:{ font:{size:9}, maxRotation:0 }, grid:{ display:false } }, y:{ ticks:{ font:{size:9} }, grid:{ color:'#F3EEFC' } } } }
+  });
+}
+
+function drawMacroChart(today){
+  const p = today.reduce((s,m)=>s+Number(m.protein||0),0);
+  const c = today.reduce((s,m)=>s+Number(m.carbs||0),0);
+  const f = today.reduce((s,m)=>s+Number(m.fat||0),0);
+  const ctx = document.getElementById('macroChart').getContext('2d');
+  if(macroChartObj) macroChartObj.destroy();
+  const hasData = (p+c+f) > 0;
+  macroChartObj = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels:['Protein (g)','Carbs (g)','Fat (g)'],
+      datasets:[{ data: hasData ? [p,c,f] : [1,1,1], backgroundColor:['#3DA9FC','#FFC93D','#FF5C8A'], borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'65%',
+      plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:10, padding:12 } },
+        tooltip:{ enabled: hasData } } }
+  });
+}
+
+function drawWeightChart(){
+  const log = (userData.weightLog||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const ctx = document.getElementById('weightChart').getContext('2d');
+  if(weightChartObj) weightChartObj.destroy();
+  if(log.length===0){
+    weightChartObj = new Chart(ctx, { type:'line', data:{labels:[], datasets:[]}, options:{maintainAspectRatio:false} });
+    return;
+  }
+  const labels = log.map(w => new Date(w.date).toLocaleDateString(undefined,{day:'numeric', month:'short'}));
+  weightChartObj = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[{
+      label:'Weight (kg)', data: log.map(w=>w.weight),
+      borderColor:'#8B5CF6', backgroundColor:'rgba(139,92,246,.12)', fill:true, tension:.35, pointBackgroundColor:'#8B5CF6', pointRadius:4
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{ ticks:{ font:{size:9} }, grid:{ display:false } }, y:{ ticks:{ font:{size:9} }, grid:{ color:'#F3EEFC' } } } }
+  });
+}
+
+// ---------- CHAT ----------
+async function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const log = document.getElementById('chatLog');
+  log.insertAdjacentHTML('beforeend', `<div class="msg user">${escapeHtml(text)}</div>`);
+  input.value = '';
+  log.scrollTop = log.scrollHeight;
+  const thinkingId = 'think-'+Date.now();
+  log.insertAdjacentHTML('beforeend', `<div class="msg bot" id="${thinkingId}"><span class="spinner dark"></span>Thinking...</div>`);
+  log.scrollTop = log.scrollHeight;
+
+  const today = todaysMeals();
+  const consumed = today.reduce((s,m)=>s+Number(m.calories||0),0);
+  const target = userData.profile ? Number(userData.profile.target)||2000 : 2000;
+  const context = `User profile: ${userData.profile? JSON.stringify(userData.profile) : 'not set'}. Today consumed ${consumed} of ${target} calories. Today's meals: ${today.map(m=>m.name).join(', ')||'none'}. Answer as a friendly, concise nutrition assistant. Keep answers short (2-5 sentences) unless asked for detail.`;
+
+  try{
+    const reply = await callClaude([{role:"user", content: context + "\n\nUser question: " + text}]);
+    document.getElementById(thinkingId).outerHTML = `<div class="msg bot">${escapeHtml(reply)}</div>`;
+  }catch(e){
+    const msg = e.message==='NO_KEY' ? "Please add your Anthropic API key in the Profile tab first." : "Sorry, I couldn't reach the assistant. Check your API key / connection.";
+    document.getElementById(thinkingId).outerHTML = `<div class="msg bot">${msg}</div>`;
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+tryAutoLogin();
+</script>
+</body>
+</html>
